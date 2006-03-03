@@ -398,13 +398,13 @@ REVERSE: {
 
       # Pick out the serial number ( required to be the first RR,
       # so the regexp is not too complex. )
-      ( $i = $maps{$view}->{$net} ) =~ s/\s*;.+?\n//g;    # remove comments
+      ( $i = $maps{$view}->{$net} ) =~ s/\s*;.*?$//g;    # remove comments
       ( $serial{$file} ) = ( $i =~ m!\s+SOA\s+\S+\s+\S+\s+(?:\(\s*)?(\d+)!is );
 
       # Expand $GENERATE for CNAMEs
       for my $line (split /\n/, $i) {
         if ( $line =~ /^\$GENERATE/ ) {
-          print qq{(debug) "GENERATE specified. ($line)\n} if ($debug);
+          print qq{(debug) GENERATE specified. ($line)\n} if ($debug);
   
           # track CNAMEs so we can skip matching PTRs later
           for (&Handle_GENERATE( "", $line ) ) {
