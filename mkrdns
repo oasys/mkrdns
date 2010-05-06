@@ -47,7 +47,7 @@ my ($rootdir)  = "/";    # root directory for files
 # Program needed variables
 my ( $i, @domains, %networks, %maps, %serial, %mips, %hash, %netmap, @toskip );
 my ( %zonetoskip, $nameddir, %numordate, %files, $toskip, $ignoreslaves );
-my ( %mcnames );
+my ( %mcnames, %arpa );
 my ($pversion)  = "3.3";
 my ($whichhash) = undef;    # which hash function to use
 
@@ -507,6 +507,7 @@ READIN: {
     # go through all 'host ? ? ?' and $ORIGIN lines ...
     foreach $i ( grep( /^(\S*(\s+\d+)?(\s+\w+)?\s+\S+\s+|\$ORIGIN)/i, @data ) )
     {
+      my ( $orig, $ptr );
       $i =~ s/\s*;.*$//;    # strip comments ...
       next unless ( length $i );    # skip blanks
 
@@ -554,7 +555,7 @@ m!^(\S*)(?:\s+(?:\d+|(?:\d+[wdhms])+|IN|CS|CH|HS)){0,2}\s+(\w+)\s+(\S+)!i
 
       # This needs to stay here for proper " A 10.0.0.0"
       # behavior -- DON'T MOVE ME (again) BAD BAD THEO!
-      next unless ( $type eq "A" );    # skip non-A records
+      next unless ( $type eq "A" or $type eq "AAAA");    # skip non-A records
 
       # should we skip?
       if ( defined $toskip
@@ -582,15 +583,27 @@ m!^(\S*)(?:\s+(?:\d+|(?:\d+[wdhms])+|IN|CS|CH|HS)){0,2}\s+(\w+)\s+(\S+)!i
       }
 
       # figure out which network this IP is in ...
-      my ($network) = &IPinNetwork( $ip, $view, \%networks );
-      unless ( defined $network ) {
-        print "(debug) Not keeping $host = $ip, not in any network.\n"
-          if ($debug);
-        next;
+      my $network;
+      if ($type eq "A") {
+        ($network) = &IPinNetwork( $ip, $view, \%networks );
+        unless ( defined $network ) {
+          print "(debug) Not keeping $host = $ip, not in any network.\n"
+            if ($debug);
+          next;
+        }
+        ( $orig, $ptr ) = ( $ip =~ /^(.+)\.(\d+)$/ );
+      } elsif ($type eq "AAAA") {
+        $ip = join('.', split //, Expand_AAAA($ip));
+        ($network) = &IPinNetwork( $ip, $view, \%networks );
+        unless ( defined $network ) {
+          print "(debug) Not keeping $host = $ip, not in any network.\n"
+            if ($debug);
+          next;
+        }
+        ( $orig, $ptr ) = ( $ip =~ /^($network)\.(.+)$/ );
       }
 
       # the original may or may not be all numeric (maps)
-      my ( $orig, $ptr ) = ( $ip =~ /^(.+)\.(\d+)$/ );
       if ( exists( $mips{$view}->{$network}->{$orig}->{$ptr} ) )
       {    # IP already has mapping!
         print qq{The entry in "$map" for "$host" duplicated "},
@@ -641,14 +654,20 @@ HASH: {
         } keys %{ $mips{$view}->{$net} }
         )
       {
-        $map .= "\$ORIGIN "
-          . join ( ".", reverse( split ( /\./, $orig ) ) )
-          . ".in-addr.arpa.\n";    # append $ORIGIN to map
+        my $rorig = join ( ".", reverse( split ( /\./, $orig ) ) );
+        my $rnet = join ( ".", reverse( split ( /\./, $net ) ) );
+        $map .= "\$ORIGIN " . $rorig . $arpa{$rnet} . ".\n";
         my $ptrs = $mips{$view}->{$net}->{$orig};
         foreach $ptr ( sort { $a <=> $b } keys %{$ptrs} ) {
 
           # Add PTR line to map
-          $map .= "$ptr\tPTR\t" . $ptrs->{$ptr} . "\n";
+          my $rptr;
+          if ($arpa{$rnet} =~ /ip6/) {
+            $rptr = join( ".", reverse( split ( /\./, $ptr ) ) );
+          } else {
+            $rptr = $ptr;
+          }
+          $map .= "$rptr\tPTR\t" . $ptrs->{$ptr} . "\n";
         }
 
       }
@@ -944,7 +963,8 @@ qq#(fatal) The zone file "$file" is being used by two zones!  Error in config fi
       return;
     }
 
-    $domain =~ s/\.in-addr\.arpa$//i;    # just the net ...
+    $domain =~ s/(\.(ip6|in-addr)\.arpa)$//i;    # just the net ...
+    $arpa{$domain} = $1;
     if ( $domain =~ /127$/ ) {           # silently skip 127.*
       print "(debug) Skipping $file for the 127.* network.\n"
         if ($debug);
@@ -1007,6 +1027,23 @@ qq{(warn) Path "$_" tries to go beyond root directory ("$new").  Removing.\n}
 sub Do_Hash {
   # Built-in (32bit checksum)
   return unpack( "%32C*", $_[0] ) % 65535;   # generate 32-bit checksum for text
+}
+
+sub Expand_AAAA {
+  my ( $ip ) = @_;
+
+  $ip =~ s/::/:!:/;
+
+  my @ip = split /:/, $ip;
+  my $num = scalar(@ip)-1;
+  my @zeros = map { $_ = '0' x 4 } (0 .. 7);
+
+  foreach (0 .. ($num)) {
+    $ip[$_] = ('0' x (4 - length($ip[$_]))) . $ip[$_];
+    $ip[$_] =~ s|000!|join('', map { '0000' } (0 .. 7-$num))|e;
+  }
+
+  return (lc(join '', @ip));
 }
 
 __END__
