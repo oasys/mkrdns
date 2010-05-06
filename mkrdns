@@ -505,6 +505,7 @@ READIN: {
 
     # the file should be fully expanded in memory now.
     # go through all 'host ? ? ?' and $ORIGIN lines ...
+RR:
     foreach $i ( grep( /^(\S*(\s+\d+)?(\s+\w+)?\s+\S+\s+|\$ORIGIN)/i, @data ) )
     {
       my ( $orig, $ptr, $network );
@@ -588,7 +589,7 @@ m!^(\S*)(?:\s+(?:\d+|(?:\d+[wdhms])+|IN|CS|CH|HS)){0,2}\s+(\w+)\s+(\S+)!i
         unless ( defined $network ) {
           print "(debug) Not keeping $host = $ip, not in any network.\n"
             if ($debug);
-          next;
+          next RR;
         }
         ( $orig, $ptr ) = ( $ip =~ /^(.+)\.(\d+)$/ );
       } elsif ($type eq "AAAA") {
@@ -597,7 +598,7 @@ m!^(\S*)(?:\s+(?:\d+|(?:\d+[wdhms])+|IN|CS|CH|HS)){0,2}\s+(\w+)\s+(\S+)!i
         unless ( defined $network ) {
           print "(debug) Not keeping $host = $ip, not in any network.\n"
             if ($debug);
-          next;
+          next RR;
         }
         ( $orig, $ptr ) = ( $ip =~ /^($network)\.(.+)$/ );
       }
