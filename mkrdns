@@ -34,6 +34,7 @@
 use strict;
 use Getopt::Long;
 use POSIX qw(strftime);
+use Digest::MD5 qw(md5_base64);
 
 # User Specified variables (commandline)
 my ($debug)    = 0;      # display debugging information (user)
@@ -1021,8 +1022,7 @@ qq{(warn) Path "$_" tries to go beyond root directory ("$new").  Removing.\n}
 }
 
 sub Do_Hash {
-  # Built-in (32bit checksum)
-  return unpack( "%32C*", $_[0] ) % 65535;   # generate 32-bit checksum for text
+  return md5_base64($_[0]);
 }
 
 sub Expand_AAAA {
