@@ -849,7 +849,7 @@ sub Handle_GENERATE {
   }
 
   die qq{(fatal) Invalid \$GENERATE line (non-pos value): "$GENERATE"\n}
-    unless ( $START > 0 && $STOP > 0 );
+    unless ( $START >= 0 && $STOP > 0 );
 
   # Convert trouble-some combinations out of the way.
   foreach ( $LHS, $RHS ) {
