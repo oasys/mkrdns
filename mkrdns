@@ -948,9 +948,9 @@ qq{(warn) No file specified for view "$view", zone "$domain" in "$bootfile".\n};
 
   if ( $domain =~ /\.arpa$/i ) {    # network
                                     # The file is already being used!
-    die
-qq#(fatal) The zone file "$file" is being used by two zones!  Error in config file!\n($files->{$file} and $view:$domain ...)\n#
-      if ( exists $files->{$file} );
+    print 
+qq#(debug) The zone file "$file" is being used by two zones.\n($files->{$file} and $view:$domain ...)\n#
+      if ( exists $files->{$file} and $debug );
 
     $files->{$file} = "$view:$domain";
 
