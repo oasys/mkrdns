@@ -171,11 +171,10 @@ READCONF: {
   my ($type) =
     ( $bootfile =~ /\.(\w+)$/ );  # what kind of config file (boot, conf, etc.)?
 
-  # let me use whatever kind of file i want to.
   # neither boot nor conf -- start crying and exit.
-  #if ( $type !~ /^(boot|conf)$/ ) {
-  #  die "(fatal) $bootfile is neither a boot nor conf file.\n";
-  #}
+  if ( $type !~ /^(boot|conf)$/ ) {
+    die "(fatal) $bootfile is neither a boot nor conf file.\n";
+  }
 
   # Read configuration file into memory.
   my ($config);
