@@ -45,6 +45,22 @@ my ($quiet)    = 0;      # show errors only, or warnings too?
 my ($version)  = 0;      # show version information
 my ($rootdir)  = "/";    # root directory for files
 
+
+# CIDR SUPPORT/KLUDGE
+# when we have a subnet smaller than /24, we are delegated a zone that looks like
+# netnum-netmask.rev.erse.ip.in-addr.arpa.  
+# e.g.:
+# 192.168.146.0/25 becomes  0-25.146.168.192.in-addr-arpa.  
+# The master server's zone for 146.168.192.in-addr.arpa. has CNAMEs pointing to our records in this local zone.    
+#
+# mkrdns was clueless about this so i kludged it in.  each place I touched is commented with "CIDR"
+#
+# If you have more than one per class-c in-addr.arpa domain, this won't be good enough, but at least you'll have
+# a place to start from.
+my %cidrnets;
+
+
+
 # Program needed variables
 my ( $i, @domains, %networks, %maps, %serial, %mips, %hash, %netmap, @toskip );
 my ( %zonetoskip, $nameddir, %numordate, %files, $toskip, $ignoreslaves );
@@ -155,10 +171,11 @@ READCONF: {
   my ($type) =
     ( $bootfile =~ /\.(\w+)$/ );  # what kind of config file (boot, conf, etc.)?
 
+  # let me use whatever kind of file i want to.
   # neither boot nor conf -- start crying and exit.
-  if ( $type !~ /^(boot|conf)$/ ) {
-    die "(fatal) $bootfile is neither a boot nor conf file.\n";
-  }
+  #if ( $type !~ /^(boot|conf)$/ ) {
+  #  die "(fatal) $bootfile is neither a boot nor conf file.\n";
+  #}
 
   # Read configuration file into memory.
   my ($config);
@@ -656,8 +673,19 @@ HASH: {
         )
       {
         my $rorig = join ( ".", reverse( split ( /\./, $orig ) ) );
+
+        # CIDR 
+        foreach my $n (keys %cidrnets) { 
+          if ($orig eq $n) {
+            $rorig = $cidrnets{$n} . '.' . $rorig;
+          }
+        }
+
         my $rnet = join ( ".", reverse( split ( /\./, $net ) ) );
         $map .= "\$ORIGIN " . $rorig . $arpa{$rnet} . ".\n";
+
+
+
         my $ptrs = $mips{$view}->{$net}->{$orig};
         foreach $ptr ( sort { $a <=> $b } keys %{$ptrs} ) {
 
@@ -748,6 +776,14 @@ exit 0;
 
     do {    # matches most specific network first (10.0.49 before 10 ...)
       $ip =~ s/\.[^\.]+$//;    # remove last octet (host #)
+
+		# CIDR 
+		foreach my $net ( keys %cidrnets ) {
+			if ($net eq $ip) { $ip .= '.' .  $cidrnets{$net} } 
+		}
+
+	
+		
       if ( exists $networks->{$view}->{$ip} ) {
         return $ip;
       }
@@ -947,9 +983,9 @@ qq{(warn) No file specified for view "$view", zone "$domain" in "$bootfile".\n};
   $file = &Handle_Path( $rootdir, $file );
 
   if ( $domain =~ /\.arpa$/i ) {    # network
-                                    # The file is already being used!
-    print 
-qq#(debug) The zone file "$file" is being used by two zones.\n($files->{$file} and $view:$domain ...)\n#
+
+    # The file is already being used!
+    print qq#(debug) The zone file "$file" is being used by two zones.\n($files->{$file} and $view:$domain ...)\n#
       if ( exists $files->{$file} and $debug );
 
     $files->{$file} = "$view:$domain";
@@ -960,6 +996,27 @@ qq#(debug) The zone file "$file" is being used by two zones.\n($files->{$file} a
       return;
     }
 
+    # CIDR 
+    # ipv4 only for this CIDR DNS weirdness
+    if ( $domain =~ /in-addr/ ) {
+      my @tmp=split(/\./,$domain);
+      print "(debug) checking for cidr, $domain\n" 
+        if ($debug);
+      # 0-25 99 168 192 in-addr arpa
+      if ( $#tmp == 5 ) {
+        my $tmpnet=join('.', reverse( @tmp[1,2,3] )  );
+        print "(debug) found a cidr net, $tmpnet\n"
+          if ($debug);
+        if ($cidrnets{$tmpnet}) {
+          die "can't handle more than one cidr block per class-c domain";
+        }
+        $cidrnets{$tmpnet} = $tmp[0];
+      } elsif ( $#tmp > 5 ) {
+        warn "odd looking domain, many elements in name: $domain";
+      }
+    } 
+
+
     $domain =~ s/(\.(ip6|in-addr)\.arpa)$//i;    # just the net ...
     $arpa{$domain} = $1;
     if ( $domain =~ /127$/ ) {           # silently skip 127.*
@@ -968,6 +1025,11 @@ qq#(debug) The zone file "$file" is being used by two zones.\n($files->{$file} a
       return;
     }
     $domain = join ( ".", reverse( split ( /\./, $domain ) ) );
+
+
+
+
+
     $networks{$view}->{$domain} = $file;
     print
       qq{(debug) Network "$domain", View "$view", File "$file", Type "$type".\n}
