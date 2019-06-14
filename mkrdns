@@ -49,7 +49,7 @@ my ($rootdir)  = "/";    # root directory for files
 my ( $i, @domains, %networks, %maps, %serial, %mips, %hash, %netmap, @toskip );
 my ( %zonetoskip, $nameddir, %numordate, %files, $toskip, $ignoreslaves );
 my ( %mcnames, %arpa );
-my ($pversion)  = "3.3";
+my ($pversion)  = "3.4";
 my ($whichhash) = undef;    # which hash function to use
 
 # Get commandline parameters
@@ -84,6 +84,15 @@ Options:
 
 Configuration file is the full path to either named.boot or named.conf.
 If not specified, mkrdns will search common locations for the files.
+
+Note that not all modern BIND configuration directives are supported; 
+you may have to make a simplified named.conf for mkrdns.  
+
+Additional features available via directives added as comments to
+configuration file: zone mapping, serial number control, skip records
+or entire zones, ignore slave domains.
+
+Run perldoc $0 for further information.
 
 " unless ($version);
   exit 0;
