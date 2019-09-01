@@ -894,7 +894,7 @@ sub Handle_GENERATE {
     $_ = "$LHS $RHS";
 
     # The only $'s left in the string should be iterator values.
-    s@\${([^}]+)}@
+    s@\$[{]([^}]+)}@
 			my($o,$w,$r) = split(/,/,$1);
 			sprintf "%0$w$r", $IT+$o;
 		@ge;
