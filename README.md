@@ -41,4 +41,4 @@ Thanks to Theo Van Dinter (felicity@mkrdns.org) for original script.
 
 ## License
 
-GNU GPL
+GNU General Public License version 2 or later (GPLv2)
