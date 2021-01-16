@@ -164,6 +164,18 @@ READCONF: {
   my ($config);
   open( CONF, "<$bootfile" ) || die "(fatal) Can't open $bootfile:$!";
   while ( $_ = <CONF> ) {         # deal with the includes!
+
+    # Must strip comments during the initial read to prevent processing commented out
+    # include and directory statements. Order is important here.
+    $_ =~ s!/\*.*\*/!!g;	# /* ... Strip single-line C-style comments */
+    if ( $_ =~ s!/\*.*$!! ) {	# /* ... Strip mulit-line 
+      while ( $_ = <CONF> ) {	#                         C-style comments */
+        last if ( $_ =~ s!.*\*/!! );
+      }
+    }
+    $_ =~ s!//.*!!;		# // ... Strip C++ style comments
+    $_ =~ s!#.*!!;		# # ...  Strip shell-style comments
+
     if ( ( /^directory/i && $type eq "boot" )
       || ( /\bdirectory\s+"[^"]+";/ && $type eq "conf" ) )
     {
@@ -179,6 +191,18 @@ READCONF: {
       # (boot) ^include <file>
       # (conf) ^include "<file>";
       for ( my ($i) = 0 ; $i <= $#conf ; $i++ ) {
+
+        # Must strip comments during the initial read to prevent processing commented out
+        # include and directory statements. Order is important here.
+        $_ =~ s!/\*.*\*/!!g;		# /* ... Strip single-line C-style comments */
+        if ( $_ =~ s!/\*.*$!! ) {	# /* ... Strip mulit-line 
+          while ( $_ = <CONF> ) {	#                         C-style comments */
+            last if ( $_ =~ s!.*\*/!! );
+          }
+        }
+        $_ =~ s!//.*!!;		# // ... Strip C++ style comments
+        $_ =~ s!#.*!!;		# # ...  Strip shell-style comments
+
         next
           unless ( $conf[$i] =~ /\binclude\s/i );    # skip non includes ...
         chomp $conf[$i];
