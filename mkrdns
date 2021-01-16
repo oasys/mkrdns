@@ -220,7 +220,10 @@ qq{(warn) Include found before named directory was specified!  Using ".".\n};
   print "(debug) Read in $bootfile.\n" if ($debug);
 
   # no directory statement anywhere?
-  die "(fatal) No named directory specified!\n" unless ($nameddir);
+  unless ($nameddir) {
+    $nameddir = ".";
+    warn qq{(warn) No named directory specified!  Using ".".\n};
+  }
 
   if ( $type eq "boot" ) {              # parse named.boot
                                         # deal with directives
