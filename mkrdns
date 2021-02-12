@@ -281,11 +281,11 @@ qq{(warn) Include found before named directory was specified!  Using ".".\n};
     # need it anyway.  The inet command is supposedly the only
     # thing valid in the controls section, but there can multiple
     # inet entries, so we remove them all.
-    $config =~ s/\bcontrols\s*{(?:\s*inet\b.+?};)+\s*};//s;
+    $config =~ s/\bcontrols\s*\{(?:\s*inet\b.+?};)+\s*};//s;
 
     # Make sure that the { and }; are properly on their own.
     $config =~ s/};/\n};/g;
-    $config =~ s/{/{\n/g;
+    $config =~ s/\{/{\n/g;
 
     # Each config line should be by itself for easier parsing
     $config =~ s/\;/\;\n/g;
@@ -333,7 +333,7 @@ qq{(warn) Include found before named directory was specified!  Using ".".\n};
       }
 
       # Re-calculate our config level
-      $count += /{/g;
+      $count += /[{]/g;
       $count -= /};/g;
 
       # If there's a configuration file error and too many }; are found ...
@@ -860,7 +860,7 @@ sub Handle_GENERATE {
     s/\$\$/\376/g;        # $$  -> \376
 
     # Replace $ or ${...} w/ valid ${offset,width,radix} sections.
-    s@\$(?:{([^}]+)})?@
+    s@\$(?:[{]([^}]+)})?@
 			my($o,$w,$r) = split(/,/,(defined $1?$1:""));
 	
 			# Want to set to the default if not defined or invalid,
