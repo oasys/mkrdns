@@ -1,4 +1,4 @@
-#!/usr/bin/perl
+#!/usr/bin/env perl
 #
 # mkrdns - Make Reverse DNS - Version 3.3
 #
