@@ -286,6 +286,11 @@ qq{(warn) Include found before named directory was specified!  Using ".".\n};
     # inet entries, so we remove them all.
     $config =~ s/\bcontrols\s*\{(?:\s*inet\b.+?};)+\s*};//s;
 
+    # The response-policy statement is not needed to parse zone
+    # information but interferes with finding "zone" statements
+    # later on since it also uses "zone" as a keyword.
+    $config =~ s/\bresponse-policy\s*\{.*?}.*?;//s;
+
     # Make sure that the { and }; are properly on their own.
     $config =~ s/};/\n};/g;
     $config =~ s/\{/{\n/g;
