@@ -164,6 +164,13 @@ READCONF: {
   my ($config);
   open( CONF, "<$bootfile" ) || die "(fatal) Can't open $bootfile:$!";
   while ( $_ = <CONF> ) {         # deal with the includes!
+    if ( $type eq "conf" ) {
+      # It is okay to strip out single line comments here, because 
+      # mkrdns directives are inside multi-line comments.
+      s!#.*!!;
+      s!//.*!!;
+    }
+    
     if ( ( /^directory/i && $type eq "boot" )
       || ( /\bdirectory\s+"[^"]+";/ && $type eq "conf" ) )
     {
@@ -179,6 +186,13 @@ READCONF: {
       # (boot) ^include <file>
       # (conf) ^include "<file>";
       for ( my ($i) = 0 ; $i <= $#conf ; $i++ ) {
+        if ( $type eq "conf" ) {
+          # It is okay to strip out single line comments here, because 
+          # mkrdns directives are inside multi-line comments.
+          $conf[$i] =~ s!#.*!!;
+          $conf[$i] =~ s!//.*!!;
+        }
+        
         next
           unless ( $conf[$i] =~ /\binclude\s/i );    # skip non includes ...
         chomp $conf[$i];
