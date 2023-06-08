@@ -24,6 +24,8 @@ Description from that site:
 > mkrdns also acts as a limited lint-like program, issuing warnings and
 > errors if there are problems with your configuration or zone files.
 
+Full documentation available via `perldoc mkrdns`.
+
 ## Added features
 
 - full support for `$GENERATE` directive
